@@ -1,3 +1,21 @@
+
+<hr>           
+
+## EDA:
+<img src="./README_SRC/EDA0.png" width=70%>                   
+
+<img src="./README_SRC/EDA1.png" width=70%>                  
+
+<img src="./README_SRC/EDA2.png" width=70%>                         
+
+<br>                    
+
+### **丝印**：          
+
+<img src="./README_SRC/silkscreen.jpg" width="50%">
+
+<hr>     
+
 2026/5/27-11:12             
 	打算是...做一个...数控电源...(?            
 ```
