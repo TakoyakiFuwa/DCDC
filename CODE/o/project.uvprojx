@@ -870,6 +870,16 @@
               <FileType>1</FileType>
               <FilePath>..\library\TFT_DMA.c</FilePath>
             </File>
+            <File>
+              <FileName>Button.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\library\Button.c</FilePath>
+            </File>
+            <File>
+              <FileName>Button.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\library\Button.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

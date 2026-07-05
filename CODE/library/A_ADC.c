@@ -87,13 +87,13 @@ void Task_ADC(void* pvParameters)
 	uint8_t count = 0;
 	while(1)
 	{
-		vTaskDelay(8);
+		vTaskDelay(3);
 		count++;
 		for(int i=0;i<(sizeof(adc_value)/sizeof(uint32_t));i++)
 		{
 			display_value[i] += adc_value[i];
 		}
-		if(count>=100)
+		if(count>=50)
 		{
 			display_value[0] /= count;
 			for(int i=1;i<5;i++)
@@ -110,9 +110,9 @@ void Task_ADC(void* pvParameters)
 			display_value[5] /= display_value[0];
 			display_value[5] *= 1324;
 			display_value[5] /= 324;
-			UI_Write_Num(38-12,28,display_value[5]/1000,FONT_PIXEL_2412,COLOR_F,COLOR_B1,2);
-			UI_Write_String(38+11,28,"_",FONT_PIXEL_2412,COLOR_F,COLOR_B1,1);
-			UI_Write_Num(38+16,28,((display_value[5]/10)%100),FONT_PIXEL_2412,COLOR_F,COLOR_B1,2);
+			UI_Write_Num(38,28,display_value[5]/1000,FONT_PIXEL_2412,COLOR_F,COLOR_B1,2);
+			UI_Write_String(38+23,28,"_",FONT_PIXEL_2412,COLOR_F,COLOR_B1,1);
+			UI_Write_Num(38+28,28,((display_value[5]/100)%10),FONT_PIXEL_2412,COLOR_F,COLOR_B1,1);
 			display_value[5] = 0;
 			count = 0;
 		}

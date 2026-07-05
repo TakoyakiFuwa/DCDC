@@ -15,6 +15,7 @@
 #include "TFT_font.h"
 #include "P_PWM.h"
 #include "R_RTC.h"
+#include "Button.h"
 
 /**@brief  初始化线程
   */
@@ -28,10 +29,11 @@ void Start_MainTask(void* pvParameters)
 	Init_TFT();
 	Init_UI();
 	Init_PWM();
+	Init_Button();
 	
 	UI_Write_String(0,0,"DC-DC",FONT_NI7SEG_2412,COLOR_WHITE,COLOR_BLACK,7);
 	UI_Draw_Rect(0,24,80,4,COLOR_MOON);
-	UI_Write_String(0,28+0,"V:",FONT_PIXEL_2412,COLOR_F,COLOR_B1,7);
+	UI_Write_String(0,28+0,"Vo:",FONT_PIXEL_2412,COLOR_F,COLOR_B1,7);
 	UI_Write_String(0,28+24,"I1:",FONT_PIXEL_2412,COLOR_F,COLOR_B2,7);
 	UI_Write_String(0,28+48,"I2:",FONT_PIXEL_2412,COLOR_F,COLOR_B1,7);
 	UI_Write_String(0,28+72,"I3:",FONT_PIXEL_2412,COLOR_F,COLOR_B2,7);
@@ -45,6 +47,7 @@ void Start_MainTask(void* pvParameters)
 //	xTaskCreate(Task_PWM,"PWM",64,NULL,1,NULL);
 	xTaskCreate(Task_ADC,"ADC",128,NULL,1,NULL);
 //	xTaskCreate(Task_RTC,"RTC",32,NULL,1,NULL);
+	xTaskCreate(Task_Button,"Button",32,NULL,1,NULL);
 	
 	//退出临界区
 	taskEXIT_CRITICAL();
