@@ -1,0 +1,132 @@
+#include "A_ADC.h"
+/*  ST库  */
+#include "stm32f10x.h"
+/*  外设库  */
+#include "U_USART1.h"
+#include "TFT_font.h"
+#include "UI_DEF.h"
+
+/*	www不太想写软件...
+ *	总感觉开发环境不舒服...
+ *	最近要做的事情太多了..
+ *	代码都写不顺心
+ *		————2026/5/20-13:08.秦羽
+ */
+
+uint32_t adc_value[6];
+#define ADC_VREF	1222
+
+/**@brief  ADC初始化
+  */
+void Init_ADC(void)
+{
+	//外设时钟初始化
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
+	//引脚初始化(PA1->ADC12_IN1)
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_1|GPIO_Pin_2|GPIO_Pin_3|GPIO_Pin_4|GPIO_Pin_5;
+	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA,&GPIO_InitStruct);
+	//ADC时钟分频
+	RCC_ADCCLKConfig(RCC_PCLK2_Div8);
+	//设置ADC通道
+	ADC_TempSensorVrefintCmd(ENABLE);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_Vrefint,1,ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_1,2,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_2,3,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_3,4,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_4,5,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_5,6,ADC_SampleTime_55Cycles5);
+	//外设初始化
+	ADC_InitTypeDef ADC_InitStruct;
+	ADC_InitStruct.ADC_ContinuousConvMode = ENABLE;
+	ADC_InitStruct.ADC_DataAlign = ADC_DataAlign_Right;
+	ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+	ADC_InitStruct.ADC_Mode = ADC_Mode_Independent;
+	ADC_InitStruct.ADC_NbrOfChannel = 6;
+	ADC_InitStruct.ADC_ScanConvMode = ENABLE;
+	ADC_Init(ADC1,&ADC_InitStruct);
+	//DMA初始化(DMA1_Channel1)
+	DMA_InitTypeDef DMA_InitStruct;
+	DMA_InitStruct.DMA_BufferSize = 6;
+	DMA_InitStruct.DMA_DIR = DMA_DIR_PeripheralSRC;
+	DMA_InitStruct.DMA_M2M = DMA_M2M_Disable;
+	DMA_InitStruct.DMA_MemoryBaseAddr = (uint32_t)adc_value;
+	DMA_InitStruct.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
+	DMA_InitStruct.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStruct.DMA_Mode = DMA_Mode_Circular;
+	DMA_InitStruct.DMA_PeripheralBaseAddr = (uint32_t)&ADC1->DR;
+	DMA_InitStruct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+	DMA_InitStruct.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStruct.DMA_Priority = DMA_Priority_Medium;
+	DMA_Init(DMA1_Channel1,&DMA_InitStruct);
+	DMA_Cmd(DMA1_Channel1,ENABLE);
+	//开启ADC的DMA模式
+	ADC_DMACmd(ADC1,ENABLE);
+	//启用ADC
+	ADC_Cmd(ADC1,ENABLE);
+	//ADC校准
+	ADC_ResetCalibration(ADC1);
+	while(ADC_GetResetCalibrationStatus(ADC1)!=RESET);
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1)!=RESET);
+	
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
+	
+	U_Printf("ADC初始化->%d \r\n",adc_value[0]);
+}
+
+/**@brief  线程：每半秒采集一次
+  */
+void Task_ADC(void* pvParameters)
+{
+	uint32_t display_value[10];
+	uint8_t count = 0;
+	while(1)
+	{
+		vTaskDelay(8);
+		count++;
+		for(int i=0;i<(sizeof(adc_value)/sizeof(uint32_t));i++)
+		{
+			display_value[i] += adc_value[i];
+		}
+		if(count>=100)
+		{
+			display_value[0] /= count;
+			for(int i=1;i<5;i++)
+			{
+				display_value[i] /= count;
+				display_value[i] *= ADC_VREF;
+				display_value[i] /= display_value[0];
+				display_value[i] /= 5;
+				UI_Write_Num(38,28+24*i,display_value[i],FONT_PIXEL_2412,COLOR_F,COLOR_B1+i%2,3);
+				display_value[i] = 0;
+			}
+			display_value[5] /= count;
+			display_value[5] *= ADC_VREF;
+			display_value[5] /= display_value[0];
+			display_value[5] *= 1324;
+			display_value[5] /= 324;
+			UI_Write_Num(38-12,28,display_value[5]/1000,FONT_PIXEL_2412,COLOR_F,COLOR_B1,2);
+			UI_Write_String(38+11,28,"_",FONT_PIXEL_2412,COLOR_F,COLOR_B1,1);
+			UI_Write_Num(38+16,28,((display_value[5]/10)%100),FONT_PIXEL_2412,COLOR_F,COLOR_B1,2);
+			display_value[5] = 0;
+			count = 0;
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
